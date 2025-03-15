@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
-from tensorflow import keras  # Import TensorFlow to load the model
+from tensorflow import keras
+import numpy as np  # Add NumPy to ensure proper input format
 
 # Load the trained model
-model = keras.models.load_model("my_model.keras")  # Ensure this file is in your GitHub repo
+model = keras.models.load_model("my_model.keras")
 
 st.title("Motor Health Prediction App")
 st.write("Welcome! Upload your sensor data and check the motor's health.")
@@ -16,12 +17,18 @@ if uploaded_file is not None:
     st.write("### Uploaded Data:")
     st.write(df)  # Display the dataset
 
-    # Assuming the last column is the target, modify if needed
-    input_data = df.iloc[:, :-1]  # Select only input features
+    # **Preprocess Data**
+    try:
+        input_data = df.iloc[:, :-1]  # Select features (modify if your dataset structure is different)
+        input_data = input_data.astype(float)  # Ensure numeric type
+        input_data = np.array(input_data)  # Convert to NumPy array
 
-    # Make predictions using the loaded model
-    predictions = model.predict(input_data)  
+        # **Make Predictions**
+        predictions = model.predict(input_data)
 
-    # Display results
-    st.write("### Predictions:")
-    st.write(predictions)
+        # **Display Predictions**
+        st.write("### Predictions:")
+        st.write(predictions)
+
+    except Exception as e:
+        st.error(f"Error processing the data: {e}")
