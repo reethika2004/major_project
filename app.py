@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from tensorflow import keras
-import numpy as np  # Add NumPy to ensure proper input format
+import numpy as np
 
 # Load the trained model
 model = keras.models.load_model("my_model.keras")
@@ -19,16 +19,20 @@ if uploaded_file is not None:
 
     # **Preprocess Data**
     try:
-        input_data = df.iloc[:, :-1]  # Select features (modify if your dataset structure is different)
-        input_data = input_data.astype(float)  # Ensure numeric type
-        input_data = np.array(input_data)  # Convert to NumPy array
+        # Drop non-numeric columns
+        df_numeric = df.select_dtypes(include=[np.number])  # Keep only numeric data
+        if df_numeric.empty:
+            st.error("No numeric columns found. Please check your dataset.")
+        else:
+            input_data = np.array(df_numeric)  # Convert to NumPy array
 
-        # **Make Predictions**
-        predictions = model.predict(input_data)
+            # **Make Predictions**
+            predictions = model.predict(input_data)
 
-        # **Display Predictions**
-        st.write("### Predictions:")
-        st.write(predictions)
+            # **Display Predictions**
+            st.write("### Predictions:")
+            st.write(predictions)
 
     except Exception as e:
         st.error(f"Error processing the data: {e}")
+
