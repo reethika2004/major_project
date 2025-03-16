@@ -1,38 +1,40 @@
 import streamlit as st
 import pandas as pd
-from tensorflow import keras
+import tensorflow as tf
 import numpy as np
 
 # Load the trained model
-model = keras.models.load_model("my_model.keras")
+@st.cache_resource()
+def load_model():
+    return tf.keras.models.load_model("my_model.keras")
+
+model = load_model()
 
 st.title("Motor Health Prediction App")
 st.write("Welcome! Upload your sensor data and check the motor's health.")
 
-# File uploader
+# Upload CSV file
 uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)  # Read the uploaded CSV
+    df = pd.read_csv(uploaded_file)
     st.write("### Uploaded Data:")
-    st.write(df)  # Display the dataset
+    st.write(df)  # Display the uploaded dataset
 
-    # **Preprocess Data**
     try:
-        # Drop non-numeric columns
-        df_numeric = df.select_dtypes(include=[np.number])  # Keep only numeric data
-        if df_numeric.empty:
-            st.error("No numeric columns found. Please check your dataset.")
-        else:
-            input_data = np.array(df_numeric)  # Convert to NumPy array
+        # Ensure all values are numerical (except target if present)
+        input_data = df.iloc[:, :14].astype(float)  # Extract first 14 columns
 
-            # **Make Predictions**
-            predictions = model.predict(input_data)
+        # Make predictions
+        predictions = model.predict(input_data)
+        
+        # Convert predictions to meaningful labels
+        predicted_labels = ["Healthy" if p > 0.5 else "Faulty" for p in predictions]
 
-            # **Display Predictions**
-            st.write("### Predictions:")
-            st.write(predictions)
-
+        # Display predictions
+        df["Predicted Health"] = predicted_labels
+        st.write("### Predictions:")
+        st.write(df[["Predicted Health"]])
+    
     except Exception as e:
         st.error(f"Error processing the data: {e}")
-
