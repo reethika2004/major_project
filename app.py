@@ -26,15 +26,18 @@ if uploaded_file is not None:
         input_data = df.iloc[:, :14].astype(float)  # Extract first 14 columns
 
         # Make predictions
-        predictions = model.predict(input_data)
+        predictions = model.predict(input_data).flatten()  # Flatten to 1D array
         
         # Convert predictions to meaningful labels
         predicted_labels = ["Healthy" if p > 1 else "Faulty" for p in predictions]
 
         # Display predictions
         df["Predicted Health"] = predicted_labels
+        df["Prediction Value"] = predictions  # Add raw prediction values
+
         st.write("### Predictions:")
-        st.write(df[["Predicted Health"]])
+        st.write(df[["Predicted Health", "Prediction Value"]])  # Show predictions with values
     
     except Exception as e:
         st.error(f"Error processing the data: {e}")
+
