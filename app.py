@@ -33,7 +33,7 @@ if uploaded_file is not None:
         predictions = model.predict(input_data).flatten()  # Flatten to 1D array
         
         # Convert predictions to meaningful labels
-        predicted_labels = ["Healthy" if p > 0.8 else "Faulty" for p in predictions]
+        predicted_labels = ["Healthy" if p > 0.5 else "Faulty" for p in predictions]
 
         # Display predictions
         df["Predicted Health"] = predicted_labels
