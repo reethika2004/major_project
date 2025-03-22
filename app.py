@@ -77,5 +77,5 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"⚠️ Error processing the data: {e}")
-python train_scaler.py
+
 streamlit run app.py
