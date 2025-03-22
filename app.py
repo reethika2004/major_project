@@ -2,13 +2,19 @@ import streamlit as st
 import pandas as pd
 import tensorflow as tf
 import numpy as np
+import joblib
 
-# Load the trained model
+# Load the trained model and scaler
 @st.cache_resource()
 def load_model():
     return tf.keras.models.load_model("my_model.keras")
 
+@st.cache_resource()
+def load_scaler():
+    return joblib.load("scaler.pkl")
+
 model = load_model()
+scaler = load_scaler()
 
 st.title("Motor Health Prediction App")
 st.write("Welcome! Upload your sensor data and check the motor's health.")
@@ -26,14 +32,18 @@ if uploaded_file is not None:
     st.write(df)  # Display the uploaded dataset
 
     try:
-        # Ensure all values are numerical (except target if present)
-        input_data = df.iloc[:, :14].astype(float)  # Extract first 14 columns
+        # Ensure all values are numerical
+        input_data = df.iloc[:, :14].astype(float)  # Extract relevant columns
+        
+        # Normalize data using the same scaler
+        input_scaled = scaler.transform(input_data)
 
         # Make predictions
-        predictions = model.predict(input_data).flatten()  # Flatten to 1D array
+        predictions = model.predict(input_scaled).flatten()  # Flatten to 1D array
         
         # Convert predictions to meaningful labels
-        predicted_labels = ["Healthy" if p > 0.25 else "Faulty" for p in predictions]
+        threshold = 0.5  # Adjust threshold if needed
+        predicted_labels = ["Healthy" if p < threshold else "Faulty" for p in predictions]
 
         # Display predictions
         df["Predicted Health"] = predicted_labels
@@ -44,4 +54,3 @@ if uploaded_file is not None:
     
     except Exception as e:
         st.error(f"Error processing the data: {e}")
-
