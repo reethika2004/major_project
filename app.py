@@ -5,58 +5,64 @@ import numpy as np
 import joblib
 from sklearn.preprocessing import StandardScaler
 
-# Load the trained model and scaler
-@st.cache_resource()
-def load_model():
-    return tf.keras.models.load_model("my_model.keras")
-
+# ✅ Ensure scaler is properly trained on 12 features
 @st.cache_resource()
 def load_scaler():
-    return joblib.load("scaler.pkl")  # Ensure this file was trained on 12 features
+    try:
+        return joblib.load("scaler.pkl")
+    except FileNotFoundError:
+        st.error("❌ Scaler file 'scaler.pkl' not found! Train and save it first.")
+        return None
 
-model = load_model()
+# ✅ Load trained model
+@st.cache_resource()
+def load_model():
+    try:
+        return tf.keras.models.load_model("my_model.keras")
+    except Exception as e:
+        st.error(f"❌ Error loading model: {e}")
+        return None
+
+# Load model and scaler
 scaler = load_scaler()
+model = load_model()
 
-st.title("Motor Health Prediction App")
-st.write("Welcome! Upload your sensor data and check the motor's health.")
+# Streamlit UI
+st.title("🔧 Motor Health Prediction App")
+st.write("Upload your sensor data (CSV format) to check the motor's health.")
 
-# Upload CSV file
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+# ✅ Upload CSV file
+uploaded_file = st.file_uploader("📂 Upload CSV file", type=["csv"])
 
-if uploaded_file is not None:
+if uploaded_file is not None and model and scaler:
     df = pd.read_csv(uploaded_file)
-    
-    # Drop unnecessary columns
+
+    # ✅ Drop unnecessary columns if they exist
     df = df.drop(columns=['Product ID', 'Type'], errors='ignore')
-    
-    st.write("### Uploaded Data:")
-    st.write(df)  # Display the uploaded dataset
+
+    st.write("### Uploaded Data Preview:")
+    st.write(df.head())  # Show first few rows
 
     try:
-        # Ensure all values are numerical and check feature count
-        expected_features = 12  # Ensure this matches your training data
-        if df.shape[1] != expected_features:
-            st.error(f"Expected {expected_features} features, but found {df.shape[1]}. Please check your input file.")
+        # ✅ Ensure correct number of features (12 features expected)
+        if df.shape[1] != 12:
+            st.error(f"❌ Incorrect number of features! Expected 12 but got {df.shape[1]}.")
         else:
-            # Extract relevant columns
+            # ✅ Convert to float & normalize using saved scaler
             input_data = df.astype(float)
-
-            # Normalize data using the same scaler
             input_scaled = scaler.transform(input_data)
 
-            # Make predictions
-            predictions = model.predict(input_scaled).flatten()  # Flatten to 1D array
-            
-            # Convert predictions to meaningful labels
-            threshold = 0.5  # Adjust threshold if needed
-            predicted_labels = ["Healthy" if p < threshold else "Faulty" for p in predictions]
+            # ✅ Make predictions
+            predictions = model.predict(input_scaled).flatten()
 
-            # Display predictions
-            df["Predicted Health"] = predicted_labels
-            df["Prediction Value"] = predictions  # Add raw prediction values
+            # ✅ Apply threshold for classification
+            threshold = 0.5
+            df["Predicted Health"] = ["Healthy" if p < threshold else "Faulty" for p in predictions]
+            df["Prediction Value"] = predictions  # Show raw prediction values
 
-            st.write("### Predictions:")
-            st.write(df[["Predicted Health", "Prediction Value"]])  # Show predictions with values
-    
+            # ✅ Display results
+            st.write("### Prediction Results:")
+            st.write(df[["Predicted Health", "Prediction Value"]])
+
     except Exception as e:
-        st.error(f"Error processing the data: {e}")
+        st.error(f"❌ Error processing the data: {e}")
