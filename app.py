@@ -3,6 +3,8 @@ import pandas as pd
 import tensorflow as tf
 import numpy as np
 import joblib
+joblib.dump(scaler, "scaler.pkl")
+
 
 # Load the trained model and scaler
 @st.cache_resource()
