@@ -16,8 +16,6 @@ scaler.fit(X_train_sample)  # Fit scaler
 joblib.dump(scaler, "scaler.pkl")
 print("✅ Scaler saved successfully!")
 
-
-
 # Load the trained model and scaler
 @st.cache_resource()
 def load_model():
