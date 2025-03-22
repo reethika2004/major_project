@@ -3,7 +3,19 @@ import pandas as pd
 import tensorflow as tf
 import numpy as np
 import joblib
+from sklearn.preprocessing import StandardScaler
+
+# Ensure scaler is defined and trained
+scaler = StandardScaler()
+
+# Example: Fit on some sample data (Replace X_train with your real training data)
+X_train_sample = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]  # Dummy data (Replace with actual dataset)
+scaler.fit(X_train_sample)  # Fit scaler
+
+# Save the trained scaler
 joblib.dump(scaler, "scaler.pkl")
+print("✅ Scaler saved successfully!")
+
 
 
 # Load the trained model and scaler
