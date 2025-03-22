@@ -5,17 +5,6 @@ import numpy as np
 import joblib
 from sklearn.preprocessing import StandardScaler
 
-# Ensure scaler is defined and trained
-scaler = StandardScaler()
-
-# Example: Fit on some sample data (Replace X_train with your real training data)
-X_train_sample = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]  # Dummy data (Replace with actual dataset)
-scaler.fit(X_train_sample)  # Fit scaler
-
-# Save the trained scaler
-joblib.dump(scaler, "scaler.pkl")
-print("✅ Scaler saved successfully!")
-
 # Load the trained model and scaler
 @st.cache_resource()
 def load_model():
@@ -23,7 +12,7 @@ def load_model():
 
 @st.cache_resource()
 def load_scaler():
-    return joblib.load("scaler.pkl")
+    return joblib.load("scaler.pkl")  # Ensure this file was trained on 12 features
 
 model = load_model()
 scaler = load_scaler()
@@ -44,25 +33,30 @@ if uploaded_file is not None:
     st.write(df)  # Display the uploaded dataset
 
     try:
-        # Ensure all values are numerical
-        input_data = df.iloc[:, :14].astype(float)  # Extract relevant columns
-        
-        # Normalize data using the same scaler
-        input_scaled = scaler.transform(input_data)
+        # Ensure all values are numerical and check feature count
+        expected_features = 12  # Ensure this matches your training data
+        if df.shape[1] != expected_features:
+            st.error(f"Expected {expected_features} features, but found {df.shape[1]}. Please check your input file.")
+        else:
+            # Extract relevant columns
+            input_data = df.astype(float)
 
-        # Make predictions
-        predictions = model.predict(input_scaled).flatten()  # Flatten to 1D array
-        
-        # Convert predictions to meaningful labels
-        threshold = 0.5  # Adjust threshold if needed
-        predicted_labels = ["Healthy" if p < threshold else "Faulty" for p in predictions]
+            # Normalize data using the same scaler
+            input_scaled = scaler.transform(input_data)
 
-        # Display predictions
-        df["Predicted Health"] = predicted_labels
-        df["Prediction Value"] = predictions  # Add raw prediction values
+            # Make predictions
+            predictions = model.predict(input_scaled).flatten()  # Flatten to 1D array
+            
+            # Convert predictions to meaningful labels
+            threshold = 0.5  # Adjust threshold if needed
+            predicted_labels = ["Healthy" if p < threshold else "Faulty" for p in predictions]
 
-        st.write("### Predictions:")
-        st.write(df[["Predicted Health", "Prediction Value"]])  # Show predictions with values
+            # Display predictions
+            df["Predicted Health"] = predicted_labels
+            df["Prediction Value"] = predictions  # Add raw prediction values
+
+            st.write("### Predictions:")
+            st.write(df[["Predicted Health", "Prediction Value"]])  # Show predictions with values
     
     except Exception as e:
         st.error(f"Error processing the data: {e}")
