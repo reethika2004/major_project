@@ -1,48 +1,81 @@
+import joblib
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+
+# ✅ Dummy training data (Replace this with actual training data)
+X_train = np.random.rand(1000, 12) # Simulated dataset with 12 features
+
+# ✅ Initialize and train the scaler
+scaler = MinMaxScaler()
+scaler.fit(X_train)
+
+# ✅ Save the scaler
+joblib.dump(scaler, "scaler.pkl")
+print("✅ Scaler trained and saved successfully as 'scaler.pkl'!")
 import streamlit as st
 import pandas as pd
 import tensorflow as tf
-import joblib
 import numpy as np
+import joblib
+import os
+from sklearn.preprocessing import MinMaxScaler
 
-# ✅ Load assets
+# ✅ Check if scaler exists
+SCALER_FILE = "scaler.pkl"
+if not os.path.exists(SCALER_FILE):
+st.error("❌ Scaler file 'scaler.pkl' not found! Run 'train_scaler.py' first.")
+st.stop()
+
+# ✅ Load trained scaler
 @st.cache_resource()
-def load_assets():
-    scaler = joblib.load("scaler.joblib")  # Use the actual scaler from training
-    model = tf.keras.models.load_model("my_model.keras")
-    return scaler, model
+def load_scaler():
+return joblib.load(SCALER_FILE)
 
-scaler, model = load_assets()
+# ✅ Load trained model
+@st.cache_resource()
+def load_model():
+return tf.keras.models.load_model("my_model.keras")
+
+scaler = load_scaler()
+model = load_model()
 
 st.title("⚙️ Motor Health Prediction App")
-st.write("Upload sensor data CSV for predictions")
+st.write("Upload your sensor data (CSV) and check the motor's health status.")
 
-# ✅ File upload
+# ✅ Upload CSV file
 uploaded_file = st.file_uploader("📂 Upload CSV file", type=["csv"])
 
-if uploaded_file:
-    try:
-        # ✅ Process data like training
-        df = pd.read_csv(uploaded_file)
-        df = df.drop(columns=['UDI', 'Product ID'], errors='ignore')
-        df = pd.get_dummies(df, drop_first=True)
-        df = df.fillna(df.mean())
-        
-        # ✅ Ensure correct feature count
-        required_features = 11  # Update based on your actual feature count
-        if df.shape[1] != required_features:
-            st.error(f"❌ Need exactly {required_features} features. Found {df.shape[1]}")
-            st.stop()
+if uploaded_file is not None:
+df = pd.read_csv(uploaded_file)
 
-        # ✅ Scale and predict
-        scaled_data = scaler.transform(df.values.astype(np.float32))
-        predictions = model.predict(scaled_data).flatten()
-        df["Status"] = ["Healthy" if p < 0.5 else "Faulty" for p in predictions]
-        df["Confidence"] = predictions
-        
-        st.write("### 🔍 Predictions")
-        st.dataframe(df[["Status", "Confidence"]])
-        
-    except Exception as e:
-        st.error(f"🚨 Error: {str(e)}")
+# ✅ Drop unnecessary columns if present
+df = df.drop(columns=['Product ID', 'Type'], errors='ignore')
+
+st.write("### 📊 Uploaded Data:")
+st.write(df) # Display dataset
+
+try:
+# ✅ Ensure only 12 features are selected for prediction
+input_data = df.iloc[:, :12].astype(float)
+
+# ✅ Normalize data using the trained scaler
+input_scaled = scaler.transform(input_data)
+
+# ✅ Make predictions
+predictions = model.predict(input_scaled).flatten()
+
+# ✅ Convert predictions to labels
+threshold = 0.5 # Adjust based on model performance
+predicted_labels = ["Healthy" if p < threshold else "Faulty" for p in predictions]
+
+# ✅ Display predictions
+df["Predicted Health"] = predicted_labels
+df["Prediction Value"] = predictions # Raw prediction values
+
+st.write("### 🔍 Predictions:")
+st.write(df[["Predicted Health", "Prediction Value"]])
+
+except Exception as e:
+st.error(f"⚠️ Error processing the data: {e}")
 
 streamlit run app.py
